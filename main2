@@ -1,0 +1,747 @@
+#include <iostream>
+#include <cstring>
+#include <typeinfo>
+using namespace std;
+
+class NrComplex
+{
+    float re,im;
+public:
+    NrComplex(){this->re=0;this->im=0;};
+    NrComplex(float re , float im){this->re=re;this->im=im;};
+    NrComplex(const NrComplex& c){this->re=c.re;this->im=c.im;}
+
+    friend istream& operator>>(istream& , NrComplex &);
+    friend ostream& operator<<(ostream& , NrComplex );
+    friend bool operator==(NrComplex , NrComplex);
+    friend bool operator!=(NrComplex , NrComplex);
+
+    NrComplex get(){NrComplex c(this->re,this->im); return c;}
+    void set(NrComplex c){this->re=c.re;this->im=c.im;}
+
+    int getRe(){return this->re;}
+    void setRe(int x){this->re=x;}
+    int getIm(){return this->im;}
+    void setIm(int x){this->im=x;}
+
+    friend NrComplex operator+(NrComplex , NrComplex);
+    friend NrComplex operator*(NrComplex , NrComplex);
+
+    NrComplex operator=(NrComplex );
+
+    friend class Matrice;
+};
+
+
+class Matrice_triunghiulara;
+
+
+class Matrice
+{
+protected:
+    NrComplex **v;
+public:
+
+    Matrice();
+    Matrice(int lin , int col);
+
+    virtual istream& citire(istream&)=0;
+    virtual ostream& afisare(ostream&) const=0;
+
+
+    friend bool matriceTriunghiularaDiagonala(Matrice_triunghiulara);
+};
+
+class Matrice_oarecare: public Matrice
+{
+protected:
+    int lin,col;
+public:
+    Matrice_oarecare():Matrice(){this->lin=0;this->col=0;};
+    Matrice_oarecare(int l,int c):Matrice(l,c){};
+    Matrice_oarecare(const Matrice_oarecare&);
+    ~Matrice_oarecare();
+
+    istream& citire(istream&);
+    ostream& afisare(ostream&) const;
+
+    friend istream& operator>>(istream& , Matrice_oarecare&);
+    friend ostream& operator<<(ostream& , const Matrice_oarecare);
+
+    Matrice_oarecare operator=(const Matrice_oarecare);
+
+    friend bool matriceTriunghiularaDiagonala(Matrice_triunghiulara);
+
+};
+
+class Matrice_patratica: public Matrice
+{
+protected:
+    int dim;//dimensiunea matricii
+public:
+    Matrice_patratica():Matrice(){this->dim=0;};
+    Matrice_patratica(int d ):Matrice(d,d){cout<<"Clasa baza"<<endl;};
+    Matrice_patratica(const Matrice_patratica&);
+    ~Matrice_patratica();
+
+    int getDim(){return this->dim;}
+    istream& citire(istream&);
+    ostream& afisare(ostream&) const;
+
+    friend istream& operator>>(istream& , Matrice_patratica&);
+    friend ostream& operator<<(ostream& , const Matrice_patratica);
+
+    Matrice_patratica operator=(const Matrice_patratica);
+
+    NrComplex determinant()const;
+
+    friend bool matriceTriunghiularaDiagonala(Matrice_triunghiulara);
+};
+
+class determinant2:virtual public Matrice_patratica
+{
+protected:
+    NrComplex det;
+public:
+    determinant2():Matrice_patratica(){ this->det.setRe(0);this->det.setIm(0);}
+    determinant2(int d):Matrice_patratica(d){this->det=this->determinant2::determinant();}
+    determinant2(const determinant2&);
+    ~determinant2()
+    {
+        for(int i=0;i<this->dim;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+    istream& citire(istream& in)
+    {
+        Matrice_patratica::citire(in);
+        cin>>det;
+        return in;
+    }
+    ostream& afisare(ostream& out) const
+    {
+        Matrice_patratica::afisare(out);
+        cout<<endl<<det<<endl;
+        return out;
+    }
+    friend istream& operator>>(istream& in ,determinant2& D)
+    {
+        D.citire(in);
+        return in;
+    }
+    friend ostream& operator<<(ostream& out , const determinant2 D)
+    {
+        D.afisare(out);
+        return out;
+    }
+};
+
+class suma_diag:virtual public Matrice_patratica
+{
+protected:
+    NrComplex suma;
+public:
+    suma_diag():Matrice_patratica(){this->suma.setRe(0);this->suma.setIm(0);}
+    suma_diag(int d):Matrice_patratica(d)
+    {
+        this->suma.setRe(0);
+        this->suma.setIm(0);
+        for(int i=0;i<dim;i++)
+        {
+            this->suma.setRe(this->suma.getRe()+v[i][i].getRe());
+            this->suma.setIm(this->suma.getIm()+v[i][i].getIm());
+        }
+    }
+    suma_diag(const suma_diag&);
+    ~suma_diag()
+    {
+        for(int i=0;i<this->dim;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+    istream& citire(istream& in)
+    {
+        Matrice_patratica::citire(in);
+        cin>>suma;
+        return in;
+    }
+    ostream& afisare(ostream& out) const
+    {
+        Matrice_patratica::afisare(out);
+        cout<<endl<<suma<<endl;
+        return out;
+    }
+    friend istream& operator>>(istream& in ,suma_diag& s)
+    {
+        s.citire(in);
+        return in;
+    }
+    friend ostream& operator<<(ostream& out , const suma_diag s)
+    {
+        s.afisare(out);
+        return out;
+    }
+};
+
+class determinant2_suma_diag:public determinant2,public suma_diag
+{
+public:
+    determinant2_suma_diag():determinant2(){this->suma.setRe(0);this->suma.setIm(0);}
+    determinant2_suma_diag(int d):determinant2(d)
+    {
+        this->suma.setRe(0);
+        this->suma.setIm(0);
+        for(int i=0;i<dim;i++)
+        {
+            this->suma.setRe(this->suma.getRe()+v[i][i].getRe());
+            this->suma.setIm(this->suma.getIm()+v[i][i].getIm());
+        }
+    }
+    determinant2_suma_diag(const determinant2_suma_diag&);
+    ~determinant2_suma_diag()
+    {
+        for(int i=0;i<this->dim;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+    istream& citire(istream& in)
+    {
+        determinant2::citire(in);
+        cin>>suma;
+        return in;
+    }
+    ostream& afisare(ostream& out) const
+    {
+        determinant2::afisare(out);
+        cout<<endl<<suma<<endl;
+        return out;
+    }
+    friend istream& operator>>(istream& in ,determinant2_suma_diag& ds)
+    {
+        ds.citire(in);
+        return in;
+    }
+    friend ostream& operator<<(ostream& out , const determinant2_suma_diag ds)
+    {
+        ds.afisare(out);
+        return out;
+    }
+};
+
+class Matrice_triunghiulara:public Matrice
+{
+    int lin;
+public:
+    Matrice_triunghiulara():Matrice(){this->lin=0;};
+    Matrice_triunghiulara(int lin);
+    Matrice_triunghiulara(const Matrice_triunghiulara&);
+    ~Matrice_triunghiulara();
+
+    istream& citire(istream&);
+    ostream& afisare(ostream&) const;
+
+    friend istream& operator>>(istream& , Matrice_triunghiulara&);
+    friend ostream& operator<<(ostream& , const Matrice_triunghiulara);
+
+    Matrice_triunghiulara operator=(const Matrice_triunghiulara);
+    friend bool matriceTriunghiularaDiagonala(Matrice_triunghiulara);
+    friend class Matrice;
+};
+
+istream& operator>>(istream& in, NrComplex & c)
+{
+    in>>c.re>>c.im;
+    return in;
+}
+ostream& operator<<(ostream& out, NrComplex  c)
+{
+    out<<c.re<<" + "<<c.im<<"i ";
+    return out;
+}
+
+NrComplex NrComplex::operator=(NrComplex c)
+{
+    this->re=c.re;
+    this->im=c.im;
+    return c;
+}
+
+NrComplex operator+(NrComplex c1, NrComplex c2)
+{
+    NrComplex c;
+    c.re=c1.re+c2.re;
+    c.im=c1.im+c2.im;
+    return c;
+}
+
+NrComplex operator*(NrComplex c1, NrComplex c2)
+{
+    NrComplex c;
+    c.re=c1.re*c2.re-c1.im*c2.im;
+    c.im=c1.re*c2.im+c1.im*c2.re;
+    return c;
+}
+
+bool operator==(NrComplex c1, NrComplex c2)
+{
+    if(c1.re == c2.re && c1.im==c2.im)
+        return 1;
+    return 0;
+}
+
+bool operator!=(NrComplex c1, NrComplex c2)
+{
+    if(c1.re != c2.re || c1.im!=c2.im)
+        return 1;
+    return 0;
+}
+
+Matrice::Matrice()
+{
+    v=NULL;
+}
+
+Matrice::Matrice(int lin , int col)
+{
+    cout<<"Introduceti elementele matricii patratice de dim "<<lin<<endl;
+    v=new NrComplex*[lin];
+    for(int i=0;i<lin;i++)//citesc elementele
+    {
+        v[i]=new NrComplex[col];
+        for(int j=0;j<col;j++)
+            cin>>this->v[i][j];
+    }
+}
+
+bool matriceTriunghiularaDiagonala(Matrice_triunghiulara Tr)
+{
+    NrComplex origin(0,0);
+    for(int i=0;i<Tr.lin;i++)
+        for(int j=0;j<i;j++)
+            if(Tr.v[i][j] != origin)
+                return 0;
+    return 1;
+}
+
+Matrice_oarecare::Matrice_oarecare(const Matrice_oarecare &M)
+{
+    this->lin=M.lin;
+    this->col=M.col;
+    this->v=new NrComplex*[this->lin];
+    for(int i=0;i<this->lin;i++)
+    {
+        v[i]=new NrComplex[this->col];
+        for(int j=0;j<this->col;j++)
+            this->v[i][j]=M.v[i][j];
+    }
+
+}
+Matrice_oarecare::~Matrice_oarecare()
+{
+    for(int i=0;i<this->lin;i++)
+        delete[] this->v[i];
+    delete [] this->v;
+}
+
+istream& Matrice_oarecare::citire(istream& in)
+{
+    if(this->v != NULL)
+    {
+        for(int i=0;i<this->lin;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+    cout<<"Nr linii si coloane:"<<endl;
+    in>>this->lin>>this->col;
+    cout<<endl<<"Introduceti de la tastatura numerele complexe din matrice ( partea reala , enter,partea imaginara)"<<endl;
+
+    v=new NrComplex*[this->lin];
+    for(int i=0;i<this->lin;i++)
+        v[i]=new NrComplex[this->col];
+
+    for(int i=0;i<this->lin;i++)
+        for(int j=0;j<this->col;j++)
+            in>>this->v[i][j];
+    return in;
+}
+
+ostream& Matrice_oarecare::afisare(ostream& out) const
+{
+    if(this->lin == 0)
+    {
+        out<<"Matrice nula"<<endl;
+        return out;
+    }
+    for(int i=0;i<this->lin;i++)
+    {
+        for(int j=0;j<this->col;j++)
+            out<<this->v[i][j]<<' ';
+        out<<endl;
+    }
+    return out;
+}
+
+Matrice_oarecare Matrice_oarecare::operator=(const Matrice_oarecare M)
+{
+    if(this != NULL)
+    {
+        for(int i=0;i<this->lin;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+    this->lin=M.lin;
+    this->col=M.col;
+    this->v=new NrComplex*[this->lin];
+    for(int i=0;i<this->lin;i++)
+    {
+        this->v[i]=new NrComplex[this->col];
+    }
+    for(int i=0;i<this->lin;i++)
+        for(int j=0;j<this->col;j++)
+            this->v[i][j]=M.v[i][j];
+    return M;
+}
+
+istream& operator>>(istream& in, Matrice_oarecare& M)
+{
+    return M.citire(in);
+}
+ostream& operator<<(ostream& out, const Matrice_oarecare M)
+{
+    return M.afisare(out);
+}
+
+Matrice_patratica::Matrice_patratica(const Matrice_patratica& M)
+{
+    this->dim=M.dim;
+    this->v=new NrComplex*[this->dim];
+    for(int i=0;i<this->dim;i++)
+    {
+        v[i]=new NrComplex[this->dim];
+        for(int j=0;j<this->dim;j++)
+            this->v[i][j]=M.v[i][j];
+    }
+
+}
+Matrice_patratica::~Matrice_patratica()
+{
+    for(int i=0;i<this->dim;i++)
+        delete[] this->v[i];
+    delete [] this->v;
+}
+
+istream& Matrice_patratica::citire(istream& in)
+{
+    if(this->v != NULL)
+    {
+        for(int i=0;i<this->dim;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+    cout<<"Dimensiune:"<<endl;
+    in>>this->dim;
+    cout<<endl<<"Introduceti de la tastatura numerele complexe din matrice ( partea reala , enter,partea imaginara)"<<endl;
+
+    v=new NrComplex*[this->dim];
+    for(int i=0;i<this->dim;i++)
+        v[i]=new NrComplex[this->dim];
+
+    for(int i=0;i<this->dim;i++)
+        for(int j=0;j<this->dim;j++)
+            in>>this->v[i][j];
+    return in;
+}
+
+ostream& Matrice_patratica::afisare(ostream& out) const
+{
+    if(this->dim == 0)
+    {
+        out<<"Matrice nula"<<endl;
+        return out;
+    }
+    for(int i=0;i<this->dim;i++)
+    {
+        for(int j=0;j<this->dim;j++)
+            out<<this->v[i][j]<<' ';
+        out<<endl;
+    }
+    out<<"det: "<<determinant()<<endl;
+    return out;
+}
+
+Matrice_patratica Matrice_patratica::operator=(const Matrice_patratica M)
+{
+    if(this != NULL)
+    {
+        for(int i=0;i<this->dim;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+    this->dim=M.dim;
+    this->v=new NrComplex*[this->dim];
+    for(int i=0;i<this->dim;i++)
+    {
+        v[i]=new NrComplex[this->dim];
+    }
+    for(int i=0;i<this->dim;i++)
+        for(int j=0;j<this->dim;j++)
+            this->v[i][j]=M.v[i][j];
+    return M;
+}
+
+istream& operator>>(istream& in, Matrice_patratica& M)
+{
+    return M.citire(in);
+}
+ostream& operator<<(ostream& out, const Matrice_patratica M)
+{
+
+    return M.afisare(out);
+}
+
+
+void getCofactor(NrComplex **mat, NrComplex **temp, int p, int q, int n)
+{
+    int i = 0, j = 0;
+
+    for (int row = 0; row < n; row++)
+    {
+        for (int col = 0; col < n; col++)
+        {
+            if (row != p && col != q)
+            {
+                temp[i][j++] = mat[row][col];
+
+                if (j == n - 1)
+                {
+                    j = 0;
+                    i++;
+                }
+            }
+        }
+    }
+}
+
+
+NrComplex determinantMatrice(NrComplex **mat, int n)
+{
+    NrComplex D(0,0);
+
+    if (n == 1)
+        return mat[0][0];
+
+    NrComplex **temp=new NrComplex*[n];
+    for(int i=0;i<n;i++)
+        temp[i]=new NrComplex[n];
+
+    NrComplex sign(1,0);
+
+    for (int f = 0; f < n; f++)
+    {
+        getCofactor(mat, temp, 0, f, n);
+        D =D + sign * mat[0][f] * determinantMatrice(temp, n - 1);
+
+        sign.setRe(-sign.getRe());
+    }
+    for(int i=0;i<n;i++)
+        delete [] temp[i];
+    delete [] temp;
+    return D;
+}
+
+NrComplex Matrice_patratica::determinant()const
+{
+    Matrice_patratica Mp(*this);
+    return determinantMatrice(Mp.v,Mp.dim);
+}
+
+Matrice_triunghiulara::Matrice_triunghiulara(int lin)
+{
+    this->lin=lin;
+    this->v=new NrComplex*[this->lin];
+    for(int i=0;i<this->lin;i++)
+    {
+        this->v[i]=new NrComplex[i+1];
+        for(int j=0;j<i+1;j++)
+            cin>>this->v[i][j];
+    }
+}
+
+Matrice_triunghiulara::Matrice_triunghiulara(const Matrice_triunghiulara& M)
+{
+    this->lin=M.lin;
+    this->v=new NrComplex*[this->lin];
+    for(int i=0;i<this->lin;i++)
+    {
+        this->v[i]=new NrComplex[i+1];
+        for(int j=0;j<i+1;j++)
+            this->v[i][j]=M.v[i][j];
+    }
+
+}
+Matrice_triunghiulara::~Matrice_triunghiulara()
+{
+    for(int i=0;i<this->lin;i++)
+        delete[] this->v[i];
+    delete [] this->v;
+}
+
+istream& Matrice_triunghiulara::citire(istream& in)
+{
+    if(this->v != NULL)
+    {
+        for(int i=0;i<this->lin;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+
+    cout<<"Nr linii:"<<endl;
+    in>>this->lin;
+    cout<<endl<<"Introduceti de la tastatura numerele complexe din matrice ( partea reala , enter,partea imaginara)"<<endl;
+
+    v=new NrComplex*[this->lin];
+    for(int i=0;i<this->lin;i++)
+        this->v[i]=new NrComplex[i+1];
+
+    for(int i=0;i<this->lin;i++)
+        for(int j=0;j<i+1;j++)
+            in>>this->v[i][j];
+    return in;
+}
+
+ostream& Matrice_triunghiulara::afisare(ostream& out) const
+{
+    if(this->lin == 0)
+    {
+        out<<"Matrice nula"<<endl;
+        return out;
+    }
+    for(int i=0;i<this->lin;i++)
+    {
+        for(int j=0;j<i+1;j++)
+            out<<this->v[i][j]<<' ';
+        out<<endl;
+    }
+    return out;
+}
+
+Matrice_triunghiulara Matrice_triunghiulara::operator=(const Matrice_triunghiulara M)
+{
+    if(this->v != NULL)
+    {
+        for(int i=0;i<this->lin;i++)
+            delete[] this->v[i];
+        delete [] this->v;
+    }
+    this->lin=M.lin;
+    this->v=new NrComplex*[this->lin];
+    for(int i=0;i<this->lin;i++)
+    {
+        this->v[i]=new NrComplex[i+1];
+    }
+    for(int i=0;i<this->lin;i++)
+        for(int j=0;j<this->lin;j++)
+            this->v[i][j]=M.v[i][j];
+    return M;
+}
+
+istream& operator>>(istream& in, Matrice_triunghiulara& M)
+{
+    return M.citire(in);
+}
+ostream& operator<<(ostream& out, const Matrice_triunghiulara M)
+{
+    return M.afisare(out);
+}
+
+
+int main()
+{
+    cout<<"Nr matrici care sa fie citite si afisate:";
+    int nr;
+    cin>>nr;
+    cout<<endl;
+
+    Matrice **pm=new Matrice*[nr];
+
+    char opt;
+    for(int i=0;i<nr;i++)
+    {
+        cout<<"Ce tip are matricea cu numarul "<<i+1<<" ? ( O - oarecare ; P - patratica ; T - triunghiulara)"<<endl;
+        cin>>opt;
+        cout<<endl;
+        switch (opt)
+        {
+            case 'O':
+            {
+                pm[i]=new Matrice_oarecare;
+                cin>>*(dynamic_cast<Matrice_oarecare*>(pm[i]));
+                break;
+            }
+            case 'P':
+            {
+                pm[i]=new Matrice_patratica;
+                cin>>*(dynamic_cast<Matrice_patratica*>(pm[i]));
+                break;
+            }
+            case 'T':
+            {
+                pm[i]=new Matrice_triunghiulara;
+                cin>>*(dynamic_cast<Matrice_triunghiulara*>(pm[i]));
+                break;
+            }
+        }
+    }
+
+    cout<<"Matricile oarecare:"<<endl;
+    for(int i=0;i<nr;i++)
+    {
+        if(strstr(typeid(*pm[i]).name(),"Matrice_oarecare"))
+            cout<<*(dynamic_cast<Matrice_oarecare*>(pm[i]));
+        cout<<endl;
+    }
+    cout<<endl<<"Matricile patratice:"<<endl;
+    for(int i=0;i<nr;i++)
+    {
+        if(strstr(typeid(*pm[i]).name(),"Matrice_patratica"))
+            cout<<*(dynamic_cast<Matrice_patratica*>(pm[i]));
+        cout<<endl;
+    }
+    cout<<endl<<"Matricile triunghiulare:"<<endl;
+    for(int i=0;i<nr;i++)
+    {
+        if(strstr(typeid(*pm[i]).name(),"Matrice_triunghiulara"))
+            cout<<*(dynamic_cast<Matrice_triunghiulara*>(pm[i]));
+        cout<<endl;
+    }
+
+    int j=0;
+    Matrice** pm2=new Matrice*[nr];
+    for(int i=0;i<nr;i++)
+    {
+        if(strstr(typeid(*pm[i]).name(),"Matrice_patratica"))
+        {
+            pm2[j]=dynamic_cast<Matrice_patratica*>(pm[i]);
+            j++;
+        }
+
+    }
+
+    Matrice_patratica aux;
+    for(int i=0;i<j-1;i++)
+        for(int k=i+1;k<j;k++)
+            if(dynamic_cast<Matrice_patratica*>(pm2[i])->getDim() < dynamic_cast< Matrice_patratica*>(pm2[k])->getDim())
+            {
+                aux=*dynamic_cast<Matrice_patratica*>(pm2[i]);
+                *dynamic_cast<Matrice_patratica*>(pm2[i])=*dynamic_cast<Matrice_patratica*>(pm2[k]);
+                *dynamic_cast<Matrice_patratica*>(pm2[k])=aux;
+            }
+
+    cout<<"Matricile patratice ordonate dupa dimensiune:"<<endl;
+    for(int i=0;i<j;i++)
+    {
+        cout<<*(dynamic_cast<Matrice_patratica*>(pm2[i]));
+        cout<<endl;
+    }
+    return 0;
+}
